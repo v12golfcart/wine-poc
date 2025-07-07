@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { describeImage } from '../services/openai';
 
 const { width, height } = Dimensions.get('window');
 
@@ -12,6 +13,8 @@ export default function PhotoConfirmScreen() {
   }>();
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiDescription, setAiDescription] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRetake = () => {
     router.back();
@@ -19,17 +22,20 @@ export default function PhotoConfirmScreen() {
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
+    setError(null);
     
     try {
-      // TODO: Here we'll call the OpenAI QA agent first, then the sommelier agent
-      // For now, simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call OpenAI to describe the image
+      const result = await describeImage(photoBase64);
       
-      // Navigate to wine list with mock data
-      router.push('/wine-list');
+      if (result.success) {
+        setAiDescription(result.description);
+      } else {
+        setError(result.error || 'Failed to analyze image');
+      }
     } catch (error) {
       console.error('Error analyzing photo:', error);
-      // TODO: Show error message
+      setError('Network error occurred. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -53,6 +59,28 @@ export default function PhotoConfirmScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* AI Description Result */}
+        {(aiDescription || error) && (
+          <View style={styles.resultContainer}>
+            <ScrollView style={styles.resultScrollView} contentContainerStyle={styles.resultContent}>
+              <View style={styles.resultHeader}>
+                <Ionicons 
+                  name={error ? "alert-circle" : "checkmark-circle"} 
+                  size={24} 
+                  color={error ? "#ff6b6b" : "#ffd33d"} 
+                />
+                <Text style={styles.resultTitle}>
+                  {error ? "Analysis Failed" : "AI Description"}
+                </Text>
+              </View>
+              
+              <Text style={[styles.resultText, error && styles.errorText]}>
+                {error || aiDescription}
+              </Text>
+            </ScrollView>
+          </View>
+        )}
+
         {/* Bottom controls */}
         <View style={styles.bottomControls}>
           <View style={styles.buttonContainer}>
@@ -65,20 +93,35 @@ export default function PhotoConfirmScreen() {
               <Text style={styles.buttonText}>Retake</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.analyzeButton]} 
-              onPress={handleAnalyze}
-              disabled={isAnalyzing}
-            >
-              <Ionicons 
-                name={isAnalyzing ? "hourglass" : "wine"} 
-                size={24} 
-                color="#000" 
-              />
-              <Text style={[styles.buttonText, styles.analyzeButtonText]}>
-                {isAnalyzing ? 'Analyzing...' : 'Analyze Menu'}
-              </Text>
-            </TouchableOpacity>
+            {!aiDescription && !error ? (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.analyzeButton]} 
+                onPress={handleAnalyze}
+                disabled={isAnalyzing}
+              >
+                <Ionicons 
+                  name={isAnalyzing ? "hourglass" : "eye"} 
+                  size={24} 
+                  color="#000" 
+                />
+                <Text style={[styles.buttonText, styles.analyzeButtonText]}>
+                  {isAnalyzing ? 'Analyzing...' : 'Describe Image'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.analyzeButton]} 
+                onPress={() => {
+                  setAiDescription(null);
+                  setError(null);
+                }}
+              >
+                <Ionicons name="refresh" size={24} color="#000" />
+                <Text style={[styles.buttonText, styles.analyzeButtonText]}>
+                  Try Again
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -151,5 +194,40 @@ const styles = StyleSheet.create({
   },
   analyzeButtonText: {
     color: '#000',
+  },
+  resultContainer: {
+    position: 'absolute',
+    top: '20%',
+    left: 20,
+    right: 20,
+    bottom: 200,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 12,
+    padding: 16,
+  },
+  resultScrollView: {
+    flex: 1,
+  },
+  resultContent: {
+    paddingBottom: 20,
+  },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  resultText: {
+    fontSize: 16,
+    color: '#ccc',
+    lineHeight: 24,
+  },
+  errorText: {
+    color: '#ff6b6b',
   },
 }); 
