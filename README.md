@@ -22,9 +22,9 @@ wine-poc/
 ## User Flow
 1. **Camera** - Full-screen camera opens on app launch
 2. **Capture** - User photographs wine menu, confirms/retakes photo
-3. **AI Analysis** - Two-stage OpenAI processing (backend):
-   - QA Agent: Validates image is a readable wine menu
-   - Sommelier Agent: Extracts wines + provides 3 ranked recommendations
+3. **AI Analysis** - Backend processes image using OpenAI Vision API:
+   - Image description and content analysis
+   - Future: Wine extraction and personalized recommendations
 4. **Selection** - User browses wine list with AI notes, selects preference
 5. **Activity** - Selected wines saved to personal history
 
@@ -39,7 +39,7 @@ wine-poc/
 - **Camera**: expo-camera with custom UI
 - **Backend**: Python Flask + OpenAI API
 - **Database**: Supabase (database + future auth)
-- **AI**: OpenAI API (dual-agent architecture)
+- **AI**: OpenAI Vision API (backend integration)
 - **Navigation**: Bottom tabs (Sommelier, Activity)
 
 ## Getting Started
@@ -76,7 +76,8 @@ pip install -r requirements.txt
 3. Set up environment variables:
 ```bash
 # Create a .env file in the backend directory
-# Add your OpenAI API key and other configurations
+echo "OPENAI_API_KEY=your_openai_api_key_here" > .env
+echo "PORT=5001" >> .env
 ```
 
 4. Start the Flask server:
