@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { describeImage, testConnection, testNetwork, testOpenAIDomain } from '../services/openai';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,73 +19,27 @@ export default function PhotoConfirmScreen() {
     router.back();
   };
 
-  const handleTestNetwork = async () => {
-    setIsAnalyzing(true);
-    setError(null);
-    
-    try {
-      const result = await testNetwork();
-      
-      if (result.success) {
-        setAiDescription(result.description);
-      } else {
-        setError(result.error || 'Network test failed');
-      }
-    } catch (error) {
-      console.error('Error testing network:', error);
-      setError('Network test failed. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleTestDomain = async () => {
-    setIsAnalyzing(true);
-    setError(null);
-    
-    try {
-      const result = await testOpenAIDomain();
-      
-      if (result.success) {
-        setAiDescription(result.description);
-      } else {
-        setError(result.error || 'Domain test failed');
-      }
-    } catch (error) {
-      console.error('Error testing domain:', error);
-      setError('Domain test failed. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleTestConnection = async () => {
-    setIsAnalyzing(true);
-    setError(null);
-    
-    try {
-      const result = await testConnection();
-      
-      if (result.success) {
-        setAiDescription(result.description);
-      } else {
-        setError(result.error || 'Connection test failed');
-      }
-    } catch (error) {
-      console.error('Error testing connection:', error);
-      setError('Connection test failed. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     setError(null);
     
     try {
-      // Call OpenAI to describe the image
-      const result = await describeImage(photoBase64);
+      // Call backend server to analyze the image
+      const response = await fetch('http://localhost:5001/analyze-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image: photoBase64
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
       
       if (result.success) {
         setAiDescription(result.description);
@@ -153,50 +106,21 @@ export default function PhotoConfirmScreen() {
               <Text style={styles.buttonText}>Retake</Text>
             </TouchableOpacity>
 
-            {false && !aiDescription && !error ? (
-              <>
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.testButton]} 
-                  onPress={handleTestNetwork}
-                  disabled={isAnalyzing}
-                >
-                  <Ionicons name="wifi" size={16} color="#fff" />
-                  <Text style={[styles.buttonText, styles.testButtonText]}>Net</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.testButton]} 
-                  onPress={handleTestDomain}
-                  disabled={isAnalyzing}
-                >
-                  <Ionicons name="globe" size={16} color="#fff" />
-                  <Text style={[styles.buttonText, styles.testButtonText]}>Domain</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.testButton]} 
-                  onPress={handleTestConnection}
-                  disabled={isAnalyzing}
-                >
-                  <Ionicons name="cloud" size={16} color="#fff" />
-                  <Text style={[styles.buttonText, styles.testButtonText]}>API</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={[styles.actionButton, styles.analyzeButton]} 
-                  onPress={handleAnalyze}
-                  disabled={isAnalyzing}
-                >
-                  <Ionicons 
-                    name={isAnalyzing ? "hourglass" : "eye"} 
-                    size={24} 
-                    color="#000" 
-                  />
-                  <Text style={[styles.buttonText, styles.analyzeButtonText]}>
-                    {isAnalyzing ? 'Analyzing...' : 'Describe'}
-                  </Text>
-                </TouchableOpacity>
-              </>
+            {!aiDescription && !error ? (
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.analyzeButton]} 
+                onPress={handleAnalyze}
+                disabled={isAnalyzing}
+              >
+                <Ionicons 
+                  name={isAnalyzing ? "hourglass" : "eye"} 
+                  size={24} 
+                  color="#000" 
+                />
+                <Text style={[styles.buttonText, styles.analyzeButtonText]}>
+                  {isAnalyzing ? 'Analyzing...' : 'Describe'}
+                </Text>
+              </TouchableOpacity>
             ) : (
               <TouchableOpacity 
                 style={[styles.actionButton, styles.analyzeButton]} 
@@ -256,7 +180,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   actionButton: {
     flex: 1,
@@ -283,13 +207,6 @@ const styles = StyleSheet.create({
   },
   analyzeButtonText: {
     color: '#000',
-  },
-  testButton: {
-    backgroundColor: '#666',
-    flex: 0.25,
-  },
-  testButtonText: {
-    color: '#fff',
   },
   resultContainer: {
     position: 'absolute',

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-// Mock AI analysis results - this will be replaced with actual OpenAI responses
+// Mock AI analysis results - this will be replaced with actual backend API responses
 const mockWines = [
   {
     id: '1',
