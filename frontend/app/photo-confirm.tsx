@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { getApiUrl } from '../config/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -25,7 +26,7 @@ export default function PhotoConfirmScreen() {
     
     try {
       // Call backend server to analyze the image
-      const response = await fetch('http://localhost:5001/analyze-image', {
+      const response = await fetch(getApiUrl('/analyze-image'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
