@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function SommelierScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
@@ -51,6 +52,42 @@ export default function SommelierScreen() {
     }
   };
 
+  const pickFromGallery = async () => {
+    try {
+      // Request permission to access media library
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (!permissionResult.granted) {
+        alert("Permission to access camera roll is required!");
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const selectedImage = result.assets[0];
+        
+        // Navigate to photo confirmation screen with the selected image
+        router.push({
+          pathname: '/photo-confirm',
+          params: { 
+            photoUri: selectedImage.uri,
+            photoBase64: selectedImage.base64 
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+    }
+  };
+
   const toggleCameraFacing = () => {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   };
@@ -72,10 +109,19 @@ export default function SommelierScreen() {
 
           {/* Bottom controls */}
           <View style={styles.bottomControls}>
-            <View style={styles.captureContainer}>
+            <View style={styles.bottomButtonsContainer}>
+              {/* Gallery button */}
+              <TouchableOpacity style={styles.galleryButton} onPress={pickFromGallery}>
+                <Ionicons name="images" size={32} color="white" />
+              </TouchableOpacity>
+              
+              {/* Capture button */}
               <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
                 <View style={styles.captureButtonInner} />
               </TouchableOpacity>
+              
+              {/* Empty space for balance */}
+              <View style={styles.emptySpace} />
             </View>
           </View>
         </View>
@@ -141,7 +187,19 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  captureContainer: {
+  bottomButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '80%',
+    paddingHorizontal: 20,
+  },
+  galleryButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   captureButton: {
@@ -159,5 +217,9 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: 'white',
+  },
+  emptySpace: {
+    width: 56,
+    height: 56,
   },
 }); 
