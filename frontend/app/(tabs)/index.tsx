@@ -100,12 +100,7 @@ export default function SommelierScreen() {
         facing={facing}
       >
         <View style={styles.overlay}>
-          {/* Top controls */}
-          <View style={styles.topControls}>
-            <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
-              <Ionicons name="camera-reverse" size={28} color="white" />
-            </TouchableOpacity>
-          </View>
+
 
           {/* Bottom controls */}
           <View style={styles.bottomControls}>
