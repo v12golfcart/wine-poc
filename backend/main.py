@@ -4,8 +4,13 @@ import os
 import base64
 import tempfile
 import time
+from datetime import datetime, UTC
 from dotenv import load_dotenv
 import openai
+
+# Import our agents
+from agents.validation_agent import validate_wine_image
+from agents.detection_agent import extract_wines
 
 # Load environment variables
 load_dotenv()
@@ -162,6 +167,149 @@ def analyze_image_file():
                 os.remove(temp_file_path)
             except Exception:
                 pass  # Ignore cleanup errors
+
+@app.route('/api/analyze-wine-image', methods=['POST'])
+def analyze_wine_image():
+    """
+    Smart endpoint: Validates image contains wine, then extracts wine data
+    Expects: multipart/form-data with 'image' field containing image file
+    Returns: {"valid": boolean, "wines": array, "error"?: string, "message"?: string}
+    """
+    timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
+    print(f"[{timestamp}] REQUEST: /api/analyze-wine-image)")
+    
+    temp_file_path = None
+    try:
+        # Check if image file is in request
+        if 'image' not in request.files:
+            return jsonify({
+                "valid": False,
+                "wines": [],
+                "error": "No image file provided"
+            }), 400
+        
+        file = request.files['image']
+        
+        if file.filename == '':
+            return jsonify({
+                "valid": False,
+                "wines": [],
+                "error": "No image file selected"
+            }), 400
+        
+        # Check file size (limit to 10MB)
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        max_size = 10 * 1024 * 1024  # 10MB in bytes
+        if file_size > max_size:
+            return jsonify({
+                "valid": False,
+                "wines": [],
+                "error": f"File too large. Maximum size is {max_size // (1024*1024)}MB"
+            }), 400
+        
+        # Validate file type
+        allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'}
+        file_extension = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        
+        if file_extension not in allowed_extensions:
+            return jsonify({
+                "valid": False,
+                "wines": [],
+                "error": f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+            }), 400
+        
+        # Map file extensions to MIME types for OpenAI
+        mime_types = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg', 
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'bmp': 'image/bmp',
+            'webp': 'image/webp'
+        }
+        mime_type = mime_types.get(file_extension, 'image/jpeg')
+        
+        # Read file data
+        file_data = file.read()
+        
+        if len(file_data) == 0:
+            return jsonify({
+                "valid": False,
+                "wines": [],
+                "error": "Uploaded file contains no data"
+            }), 400
+        
+        # Create temporary file for cleanup purposes
+        timestamp = int(time.time() * 1000)
+        temp_file_path = os.path.join(tempfile.gettempdir(), f"wine_analysis_{timestamp}.{file_extension}")
+        
+        # Save to temp file
+        with open(temp_file_path, 'wb') as temp_file:
+            temp_file.write(file_data)
+        
+        # Convert to base64 for OpenAI
+        base64_image = base64.b64encode(file_data).decode('utf-8')
+        
+        # STEP 1: Quick validation (cheap)
+        is_valid = validate_wine_image(base64_image, mime_type)
+        
+        if not is_valid:
+            timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
+            print(f"[{timestamp}] RESPONSE: FAIL - Invalid image (not wine content)")
+            return jsonify({
+                "valid": False,
+                "wines": [],
+                "message": "Image must contain wine bottles or a wine menu"
+            })
+        
+        # STEP 2: Wine detection (more expensive, but only if validation passed)
+        wines = extract_wines(base64_image, mime_type)
+        
+        if not wines:
+            timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
+            print(f"[{timestamp}] RESPONSE: FAIL - No wines detected")
+            return jsonify({
+                "valid": True,
+                "wines": [],
+                "error": "No wines could be detected in the image"
+            })
+        
+        timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
+        print(f"[{timestamp}] RESPONSE: SUCCESS - Found {len(wines)} wines")
+        return jsonify({
+            "valid": True,
+            "wines": wines
+        })
+        
+    except openai.OpenAIError as e:
+        timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
+        print(f"[{timestamp}] RESPONSE: ERROR - OpenAI API: {str(e)}")
+        return jsonify({
+            "valid": False,
+            "wines": [],
+            "error": f"OpenAI API error: {str(e)}"
+        }), 500
+        
+    except Exception as e:
+        timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
+        print(f"[{timestamp}] RESPONSE: ERROR - Internal: {str(e)}")
+        return jsonify({
+            "valid": False,
+            "wines": [],
+            "error": "Internal server error"
+        }), 500
+    
+    finally:
+        # Clean up temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.remove(temp_file_path)
+            except Exception:
+                pass  # Ignore cleanup errors
+
 
 @app.route('/api/wine-recommendations', methods=['POST'])
 def get_wine_recommendations():

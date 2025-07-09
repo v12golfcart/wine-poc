@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getApiUrl } from '../config/api';
@@ -9,13 +9,9 @@ const { width, height } = Dimensions.get('window');
 export default function PhotoConfirmScreen() {
   const { photoUri } = useLocalSearchParams<{
     photoUri: string;
-    // Removed photoBase64 parameter
   }>();
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'analyzing'>('idle');
-  const [aiDescription, setAiDescription] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const handleRetake = () => {
     router.back();
@@ -23,8 +19,6 @@ export default function PhotoConfirmScreen() {
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
-    setUploadProgress('uploading');
-    setError(null);
     
     try {
       // Create FormData for file upload
@@ -48,36 +42,45 @@ export default function PhotoConfirmScreen() {
         name: filename,
       } as any);
       
-      setUploadProgress('analyzing');
-      
-      const uploadResponse = await fetch(getApiUrl('/analyze-image-file'), {
+      const response = await fetch(getApiUrl('/api/analyze-wine-image'), {
         method: 'POST',
         body: formData,
       });
       
-      const result = await uploadResponse.json();
+      const result = await response.json();
       
-      if (result.success) {
-        setAiDescription(result.description);
+      if (result.valid) {
+        if (result.wines && result.wines.length > 0) {
+          // Success: Found wines
+          Alert.alert(
+            'Success! 🍷',
+            `Found ${result.wines.length} wine${result.wines.length !== 1 ? 's' : ''}:\n\n${result.wines.map((wine: any) => `• ${wine.wineries.join(' & ')}: ${wine.name}`).join('\n')}`,
+            [{ text: 'OK' }]
+          );
+        } else {
+          // Valid wine image but no wines detected
+          Alert.alert(
+            'No Wines Found',
+            result.error || 'Valid wine image, but no specific wines could be identified.',
+            [{ text: 'OK' }]
+          );
+        }
       } else {
-        setError(result.error || 'Analysis failed');
+        // Invalid image
+        Alert.alert(
+          'Invalid Image',
+          result.message || result.error || 'Please take a photo of a wine bottle or wine menu.',
+          [{ text: 'OK' }]
+        );
       }
     } catch (error) {
-      setError('Failed to analyze image. Please try again.');
+      Alert.alert(
+        'Network Error',
+        'Failed to analyze image. Please check your internet connection and try again.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsAnalyzing(false);
-      setUploadProgress('idle');
-    }
-  };
-
-  const getLoadingMessage = () => {
-    switch (uploadProgress) {
-      case 'uploading':
-        return 'Uploading image...';
-      case 'analyzing':
-        return 'AI analyzing image...';
-      default:
-        return 'Processing...';
     }
   };
 
@@ -99,28 +102,6 @@ export default function PhotoConfirmScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* AI Description Result */}
-        {(aiDescription || error) && (
-          <View style={styles.resultContainer}>
-            <ScrollView style={styles.resultScrollView} contentContainerStyle={styles.resultContent}>
-              <View style={styles.resultHeader}>
-                <Ionicons 
-                  name={error ? "alert-circle" : "checkmark-circle"} 
-                  size={24} 
-                  color={error ? "#ff6b6b" : "#ffd33d"} 
-                />
-                <Text style={styles.resultTitle}>
-                  {error ? "Analysis Failed" : "AI Description"}
-                </Text>
-              </View>
-              
-              <Text style={[styles.resultText, error && styles.errorText]}>
-                {error || aiDescription}
-              </Text>
-            </ScrollView>
-          </View>
-        )}
-
         {/* Bottom controls */}
         <View style={styles.bottomControls}>
           <View style={styles.buttonContainer}>
@@ -133,35 +114,20 @@ export default function PhotoConfirmScreen() {
               <Text style={styles.buttonText}>Retake</Text>
             </TouchableOpacity>
 
-            {!aiDescription && !error ? (
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.analyzeButton]} 
-                onPress={handleAnalyze}
-                disabled={isAnalyzing}
-              >
-                <Ionicons 
-                  name={isAnalyzing ? "hourglass" : "eye"} 
-                  size={24} 
-                  color="#000" 
-                />
-                <Text style={[styles.buttonText, styles.analyzeButtonText]}>
-                  {isAnalyzing ? getLoadingMessage() : 'Describe'}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.analyzeButton]} 
-                onPress={() => {
-                  setAiDescription(null);
-                  setError(null);
-                }}
-              >
-                <Ionicons name="refresh" size={24} color="#000" />
-                <Text style={[styles.buttonText, styles.analyzeButtonText]}>
-                  Try Again
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.analyzeButton, isAnalyzing && styles.disabledButton]} 
+              onPress={handleAnalyze}
+              disabled={isAnalyzing}
+            >
+              <Ionicons 
+                name={isAnalyzing ? "hourglass" : "wine"} 
+                size={24} 
+                color="#000" 
+              />
+              <Text style={[styles.buttonText, styles.analyzeButtonText]}>
+                {isAnalyzing ? 'Analyzing...' : 'Analyze Wine'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -198,7 +164,7 @@ const styles = StyleSheet.create({
   },
   bottomControls: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 50,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
@@ -206,8 +172,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
+    gap: 16,
   },
   actionButton: {
     flex: 1,
@@ -215,8 +180,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 25,
+    paddingHorizontal: 24,
+    borderRadius: 50,
     gap: 8,
   },
   retakeButton: {
@@ -227,6 +192,9 @@ const styles = StyleSheet.create({
   analyzeButton: {
     backgroundColor: '#ffd33d',
   },
+  disabledButton: {
+    opacity: 0.6,
+  },
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
@@ -234,40 +202,5 @@ const styles = StyleSheet.create({
   },
   analyzeButtonText: {
     color: '#000',
-  },
-  resultContainer: {
-    position: 'absolute',
-    top: '20%',
-    left: 20,
-    right: 20,
-    bottom: 200,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 12,
-    padding: 16,
-  },
-  resultScrollView: {
-    flex: 1,
-  },
-  resultContent: {
-    paddingBottom: 20,
-  },
-  resultHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  resultTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  resultText: {
-    fontSize: 16,
-    color: '#ccc',
-    lineHeight: 24,
-  },
-  errorText: {
-    color: '#ff6b6b',
   },
 }); 

@@ -1,0 +1,143 @@
+{
+  "_instructions": "Map each test image filename to its expected wine data. Replace these examples with your actual test cases.",
+  "wine_bottle_example_1.png": {
+    "should_validate": true,
+    "expected_wines": [
+      {
+        "wineries": [
+          "Alexander Valley Vineyards"
+        ],
+        "name": "Cabernet Sauvignon",
+        "year": "2022",
+        "varietal": "Cabernet Sauvignon",
+        "region": "Alexander Valley"
+      }
+    ]
+  },
+  "wine_menu_example_1.jpg": {
+    "should_validate": true,
+    "expected_wines": [
+      {
+        "wineries": [
+          "Cote De Roses"
+        ],
+        "name": "Cote De Roses Ros\u00e9",
+        "year": null,
+        "varietal": "Ros\u00e9",
+        "region": "Languedoc, France"
+      },
+      {
+        "wineries": [
+          "Whispering Angel"
+        ],
+        "name": "Whispering Angel Ros\u00e9",
+        "year": null,
+        "varietal": "Ros\u00e9",
+        "region": "Provence, France"
+      },
+      {
+        "wineries": [
+          "Crossbarn"
+        ],
+        "name": "Pinot Noir",
+        "year": null,
+        "varietal": "Pinot Noir",
+        "region": "Sonoma, California"
+      },
+      {
+        "wineries": [
+          "Josh"
+        ],
+        "name": "Cabernet",
+        "year": null,
+        "varietal": "Cabernet Sauvignon",
+        "region": "Proprietary California"
+      },
+      {
+        "wineries": [
+          "Antinori"
+        ],
+        "name": "Peppoli Chianti Classico",
+        "year": null,
+        "varietal": "Sangiovese",
+        "region": "Tuscany, Italy"
+      },
+      {
+        "wineries": [
+          "Dugal"
+        ],
+        "name": "Cabernet/Merlot",
+        "year": null,
+        "varietal": "Cabernet Sauvignon / Merlot",
+        "region": "Veneto, Italy"
+      },
+      {
+        "wineries": [
+          "Cantina Peppucci"
+        ],
+        "name": "Sangiovese/Merlot",
+        "year": null,
+        "varietal": "Sangiovese / Merlot",
+        "region": "Umbria, Italy"
+      },
+      {
+        "wineries": [
+          "San Michele"
+        ],
+        "name": "Chianti",
+        "year": null,
+        "varietal": "Chianti",
+        "region": "Tuscany, Italy"
+      },
+      {
+        "wineries": [
+          "Abbondanza"
+        ],
+        "name": "Montepulciano",
+        "year": null,
+        "varietal": "Montepulciano",
+        "region": "Abruzzo, Italy"
+      },
+      {
+        "wineries": [
+          "Domaine Chandon"
+        ],
+        "name": "Brut Ros\u00e9",
+        "year": null,
+        "varietal": "Sparkling Ros\u00e9",
+        "region": "Napa Valley, California"
+      },
+      {
+        "wineries": [
+          "Mo\u00ebt & Chandon"
+        ],
+        "name": "Imperial Brut",
+        "year": null,
+        "varietal": "Champagne",
+        "region": "Champagne, France"
+      },
+      {
+        "wineries": [
+          "Veuve Clicquot"
+        ],
+        "name": "Yellow Label Brut",
+        "year": null,
+        "varietal": "Champagne",
+        "region": "Champagne, France"
+      },
+      {
+        "wineries": [
+          "Dom P\u00e9rignon"
+        ],
+        "name": "Brut",
+        "year": null,
+        "varietal": "Champagne",
+        "region": "Champagne, France"
+      }
+    ]
+  },
+  "not_wine_example_1.png": {
+    "should_validate": false,
+    "expected_wines": []
+  }
+}
