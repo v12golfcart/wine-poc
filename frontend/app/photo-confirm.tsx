@@ -7,12 +7,13 @@ import { getApiUrl } from '../config/api';
 const { width, height } = Dimensions.get('window');
 
 export default function PhotoConfirmScreen() {
-  const { photoUri, photoBase64 } = useLocalSearchParams<{
+  const { photoUri } = useLocalSearchParams<{
     photoUri: string;
-    photoBase64: string;
+    // Removed photoBase64 parameter
   }>();
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'analyzing'>('idle');
   const [aiDescription, setAiDescription] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,36 +23,61 @@ export default function PhotoConfirmScreen() {
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
+    setUploadProgress('uploading');
     setError(null);
     
     try {
-      // Call backend server to analyze the image
-      const response = await fetch(getApiUrl('/analyze-image'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: photoBase64
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Determine file extension from URI
+      let fileExtension = 'jpg';
+      if (photoUri.includes('.')) {
+        const uriExt = photoUri.split('.').pop()?.toLowerCase();
+        if (uriExt && ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(uriExt)) {
+          fileExtension = uriExt === 'jpeg' ? 'jpg' : uriExt;
+        }
       }
-
-      const result = await response.json();
+      
+      const filename = `image.${fileExtension}`;
+      
+      // Append file URI to FormData (React Native approach)
+      formData.append('image', {
+        uri: photoUri,
+        type: `image/${fileExtension}`,
+        name: filename,
+      } as any);
+      
+      setUploadProgress('analyzing');
+      
+      const uploadResponse = await fetch(getApiUrl('/analyze-image-file'), {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await uploadResponse.json();
       
       if (result.success) {
         setAiDescription(result.description);
       } else {
-        setError(result.error || 'Failed to analyze image');
+        setError(result.error || 'Analysis failed');
       }
     } catch (error) {
-      console.error('Error analyzing photo:', error);
-      setError('Network error occurred. Please try again.');
+      setError('Failed to analyze image. Please try again.');
     } finally {
       setIsAnalyzing(false);
+      setUploadProgress('idle');
+    }
+  };
+
+  const getLoadingMessage = () => {
+    switch (uploadProgress) {
+      case 'uploading':
+        return 'Uploading image...';
+      case 'analyzing':
+        return 'AI analyzing image...';
+      default:
+        return 'Processing...';
     }
   };
 
@@ -119,7 +145,7 @@ export default function PhotoConfirmScreen() {
                   color="#000" 
                 />
                 <Text style={[styles.buttonText, styles.analyzeButtonText]}>
-                  {isAnalyzing ? 'Analyzing...' : 'Describe'}
+                  {isAnalyzing ? getLoadingMessage() : 'Describe'}
                 </Text>
               </TouchableOpacity>
             ) : (

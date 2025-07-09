@@ -20,26 +20,27 @@ wine-poc/
 ```
 
 ## User Flow
-1. **Camera** - Full-screen camera opens on app launch
-2. **Capture** - User photographs wine menu, confirms/retakes photo
-3. **AI Analysis** - Backend processes image using OpenAI Vision API:
+1. **Camera** - Full-screen camera opens on app launch  
+2. **Capture** - User photographs wine menu with instant preview
+3. **AI Analysis** - Backend processes uploaded image using OpenAI Vision API:
    - Image description and content analysis
    - Future: Wine extraction and personalized recommendations
 4. **Selection** - User browses wine list with AI notes, selects preference
 5. **Activity** - Selected wines saved to personal history
 
 ## Core Features
-- **Sommelier Tab**: Full-screen camera with Snapchat-style photo confirmation
+- **Sommelier Tab**: Full-screen camera with instant image preview
 - **Activity Tab**: Personal wine selection history
-- **AI Integration**: Menu text extraction + personalized recommendations
-- **Real-time Sync**: Supabase backend for data persistence
+- **AI Integration**: Menu text extraction + personalized recommendations  
+- **File Upload**: Modern multipart/form-data image processing
+- **Real-time Processing**: Flask backend with OpenAI Vision API
 
 ## Technical Stack
 - **Frontend**: Expo (React Native) - iOS focused
-- **Camera**: expo-camera with custom UI
-- **Backend**: Python Flask + OpenAI API
-- **Database**: Supabase (database + future auth)
-- **AI**: OpenAI Vision API (backend integration)
+- **Camera**: expo-camera with React Native file upload
+- **Backend**: Python Flask + OpenAI Vision API  
+- **Database**: Future Supabase integration
+- **AI**: OpenAI Vision API (gpt-4o-mini model)
 - **Navigation**: Bottom tabs (Sommelier, Activity)
 
 ## Getting Started

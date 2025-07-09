@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import base64
+import tempfile
+import time
 from dotenv import load_dotenv
 import openai
 
@@ -18,32 +20,88 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 def health_check():
     return jsonify({"status": "healthy", "service": "wine-app-backend"})
 
-@app.route('/analyze-image', methods=['POST'])
-def analyze_image():
+@app.route('/analyze-image-file', methods=['POST'])
+def analyze_image_file():
     """
-    Analyze a base64 image using OpenAI Vision API
-    Expects: {"image": "base64_string"}
+    Analyze an uploaded image file using OpenAI Vision API
+    Expects: multipart/form-data with 'image' field containing image file
     Returns: {"success": boolean, "description": string, "error"?: string}
     """
+    temp_file_path = None
     try:
-        data = request.get_json()
-        
-        if not data or 'image' not in data:
+        # Check if image file is in request
+        if 'image' not in request.files:
             return jsonify({
                 "success": False,
                 "description": "",
-                "error": "No image provided"
+                "error": "No image file provided"
             }), 400
         
-        base64_image = data['image']
+        file = request.files['image']
         
-        if not base64_image:
+        if file.filename == '':
             return jsonify({
                 "success": False,
                 "description": "",
-                "error": "Empty image data"
+                "error": "No image file selected"
             }), 400
-
+        
+        # Check file size (limit to 10MB)
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        
+        max_size = 10 * 1024 * 1024  # 10MB in bytes
+        if file_size > max_size:
+            return jsonify({
+                "success": False,
+                "description": "",
+                "error": f"File too large. Maximum size is {max_size // (1024*1024)}MB"
+            }), 400
+        
+        # Validate file type
+        allowed_extensions = {'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'}
+        file_extension = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        
+        if file_extension not in allowed_extensions:
+            return jsonify({
+                "success": False,
+                "description": "",
+                "error": f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+            }), 400
+        
+        # Map file extensions to MIME types for OpenAI
+        mime_types = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg', 
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'bmp': 'image/bmp',
+            'webp': 'image/webp'
+        }
+        mime_type = mime_types.get(file_extension, 'image/jpeg')
+        
+        # Read file data
+        file_data = file.read()
+        
+        if len(file_data) == 0:
+            return jsonify({
+                "success": False,
+                "description": "",
+                "error": "Uploaded file contains no data"
+            }), 400
+        
+        # Create temporary file for cleanup purposes
+        timestamp = int(time.time() * 1000)
+        temp_file_path = os.path.join(tempfile.gettempdir(), f"uploaded_image_{timestamp}.{file_extension}")
+        
+        # Save to temp file
+        with open(temp_file_path, 'wb') as temp_file:
+            temp_file.write(file_data)
+        
+        # Convert to base64 for OpenAI
+        base64_image = base64.b64encode(file_data).decode('utf-8')
+        
         # Call OpenAI Vision API
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
@@ -60,7 +118,7 @@ def analyze_image():
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                "url": f"data:{mime_type};base64,{base64_image}",
                                 "detail": "low"
                             }
                         }
@@ -84,7 +142,6 @@ def analyze_image():
         })
         
     except openai.OpenAIError as e:
-        print(f"OpenAI API error: {e}")
         return jsonify({
             "success": False,
             "description": "",
@@ -92,12 +149,19 @@ def analyze_image():
         }), 500
         
     except Exception as e:
-        print(f"Error analyzing image: {e}")
         return jsonify({
             "success": False,
             "description": "",
             "error": "Internal server error"
         }), 500
+    
+    finally:
+        # Clean up temporary file
+        if temp_file_path and os.path.exists(temp_file_path):
+            try:
+                os.remove(temp_file_path)
+            except Exception:
+                pass  # Ignore cleanup errors
 
 @app.route('/api/wine-recommendations', methods=['POST'])
 def get_wine_recommendations():

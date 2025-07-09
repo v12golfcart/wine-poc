@@ -4,7 +4,8 @@ const ENVIRONMENT = 'development' as 'development' | 'production';
 
 const API_CONFIG = {
   development: {
-    BASE_URL: 'https://winepoc.ngrok.io', // Will be replaced with ngrok URL when testing
+    BASE_URL: 'https://winepoc.ngrok.io', // ngrok URL when testing    
+    // BASE_URL: 'http://localhost:5001', // Testing localhost first
     NAME: 'Local Development'
   },
   production: {

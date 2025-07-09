@@ -35,19 +35,17 @@ export default function SommelierScreen() {
       try {
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.8,
-          base64: true,
         });
         
-        // Navigate to photo confirmation screen with the photo data
+        // Navigate to photo confirmation screen with photo URI
         router.push({
           pathname: '/photo-confirm',
           params: { 
             photoUri: photo.uri,
-            photoBase64: photo.base64 
           }
         });
       } catch (error) {
-        console.error('Error taking picture:', error);
+        // Handle error silently or show user-friendly message
       }
     }
   };
@@ -68,23 +66,21 @@ export default function SommelierScreen() {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
-        base64: true,
       });
 
       if (!result.canceled && result.assets[0]) {
         const selectedImage = result.assets[0];
         
-        // Navigate to photo confirmation screen with the selected image
+        // Navigate to photo confirmation screen with image URI
         router.push({
           pathname: '/photo-confirm',
           params: { 
             photoUri: selectedImage.uri,
-            photoBase64: selectedImage.base64 
           }
         });
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      // Handle error silently or show user-friendly message
     }
   };
 
