@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Image, Dimensions, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApiUrl } from '../config/api';
 
 const { width, height } = Dimensions.get('window');
@@ -51,12 +52,21 @@ export default function PhotoConfirmScreen() {
       
       if (result.valid) {
         if (result.wines && result.wines.length > 0) {
-          // Success: Found wines
-          Alert.alert(
-            'Success! 🍷',
-            `Found ${result.wines.length} wine${result.wines.length !== 1 ? 's' : ''}:\n\n${result.wines.map((wine: any) => `• ${wine.wineries.join(' & ')}: ${wine.name}`).join('\n')}`,
-            [{ text: 'OK' }]
-          );
+          // Save recommendations to AsyncStorage
+          try {
+            await AsyncStorage.setItem('wine_recommendations', JSON.stringify(result.wines));
+            
+            // Navigate to recommendations page
+            router.push('/recommendations');
+          } catch (error) {
+            console.error('Error saving recommendations:', error);
+            // Fallback to alert if storage fails
+            Alert.alert(
+              'Success! 🍷',
+              `Found ${result.wines.length} wine${result.wines.length !== 1 ? 's' : ''} with sommelier recommendations!`,
+              [{ text: 'OK' }]
+            );
+          }
         } else {
           // Valid wine image but no wines detected
           Alert.alert(
