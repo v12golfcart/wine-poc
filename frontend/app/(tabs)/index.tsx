@@ -34,7 +34,8 @@ export default function SommelierScreen() {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8,
+          quality: 1.0,  // Maximum quality for better wine menu text recognition
+          skipProcessing: false,
         });
         
         // Navigate to photo confirmation screen with photo URI
@@ -63,8 +64,7 @@ export default function SommelierScreen() {
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false,  // Don't allow cropping - we want the full image
         quality: 0.8,
       });
 

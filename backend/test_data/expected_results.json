@@ -136,7 +136,7 @@
       }
     ]
   },
-  "not_wine_example_1.png": {
+  "not_wine_bottle_example_1.png": {
     "should_validate": false,
     "expected_wines": []
   }

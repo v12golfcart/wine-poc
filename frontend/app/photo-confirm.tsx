@@ -100,7 +100,7 @@ export default function PhotoConfirmScreen() {
       <Image 
         source={{ uri: photoUri }} 
         style={styles.photo}
-        resizeMode="cover"
+        resizeMode="contain"
       />
       
       {/* Overlay controls */}

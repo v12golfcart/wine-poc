@@ -53,11 +53,54 @@ def extract_wines(base64_image: str, mime_type: str) -> List[Dict[str, Any]]:
     # Debug logging
     print(f"Detection agent: Using {len(varietals)} varietals")
     
+    # Define JSON schema for wine detection
+    wine_schema = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "wine_detection",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "wines": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "wineries": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "year": {
+                                    "type": ["string", "null"]
+                                },
+                                "varietal": {
+                                    "type": "string"
+                                },
+                                "region": {
+                                    "type": ["string", "null"]
+                                }
+                            },
+                            "required": ["wineries", "name", "year", "varietal", "region"],
+                            "additionalProperties": False
+                        }
+                    }
+                },
+                "required": ["wines"],
+                "additionalProperties": False
+            }
+        }
+    }
+
     try:
         detection_response = openai.chat.completions.create(
             model=detection_config["model"],
             max_tokens=detection_config["max_tokens"],
             temperature=detection_config["temperature"],
+            response_format=wine_schema,
             messages=[
                 {
                     "role": "user",
@@ -84,14 +127,25 @@ def extract_wines(base64_image: str, mime_type: str) -> List[Dict[str, Any]]:
             print("Detection agent: No AI response received")
             return []
         
-        # Parse JSON response
+        # Parse JSON response (no markdown stripping needed with structured outputs)
         try:
-            wines = json.loads(ai_response)
+            response_data = json.loads(ai_response)
+            
+            # Extract wines array from structured response
+            wines = response_data.get("wines", [])
             
             # Validate that it's an array
             if not isinstance(wines, list):
-                print("Detection agent: Invalid response format (not array)")
+                print("Detection agent: Invalid response format (wines not array)")
                 return []
+            
+            # Log detection results
+            print(f"Detection agent: Successfully detected {len(wines)} wines")
+            if wines:
+                wine_names = [f"{wine.get('wineries', ['Unknown'])[0]}: {wine.get('name', 'Unknown')}" for wine in wines]
+                print(f"Detection agent: Found wines: {', '.join(wine_names)}")
+            else:
+                print("Detection agent: No wines detected in image")
             
             return wines
             

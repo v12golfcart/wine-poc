@@ -11,6 +11,7 @@ import openai
 # Import our agents
 from agents.validation_agent import validate_wine_image
 from agents.detection_agent import extract_wines
+from agents.sommelier_agent import get_wine_recommendations
 
 # Load environment variables
 load_dotenv()
@@ -277,12 +278,25 @@ def analyze_wine_image():
                 "error": "No wines could be detected in the image"
             })
         
-        timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
-        print(f"[{timestamp}] RESPONSE: SUCCESS - Found {len(wines)} wines")
-        return jsonify({
-            "valid": True,
-            "wines": wines
-        })
+        # STEP 3: Sommelier recommendations (runs in parallel with detection results)
+        try:
+            recommended_wines = get_wine_recommendations(wines, base64_image, mime_type)
+            timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
+            print(f"[{timestamp}] RESPONSE: SUCCESS - Found {len(wines)} wines with sommelier recommendations")
+            return jsonify({
+                "valid": True,
+                "wines": recommended_wines,
+                "raw_detection": wines  # Include original detection results for debugging
+            })
+        except Exception as e:
+            # If sommelier fails, still return the detected wines
+            timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
+            print(f"[{timestamp}] RESPONSE: PARTIAL SUCCESS - Found {len(wines)} wines, sommelier failed: {str(e)}")
+            return jsonify({
+                "valid": True,
+                "wines": wines,
+                "sommelier_error": f"Sommelier recommendations failed: {str(e)}"
+            })
         
     except openai.OpenAIError as e:
         timestamp = datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
@@ -312,7 +326,7 @@ def analyze_wine_image():
 
 
 @app.route('/api/wine-recommendations', methods=['POST'])
-def get_wine_recommendations():
+def wine_recommendations_endpoint():
     # This will be your wine processing endpoint
     # You can add additional wine processing logic here
     data = request.get_json()

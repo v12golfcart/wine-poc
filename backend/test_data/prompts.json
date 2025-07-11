@@ -18,10 +18,19 @@
   },
   
   "detection": {
-    "prompt_template": "Analyze this image and extract all wine information. Return a JSON array of wine objects with this exact structure:\n\n[\n  {{\n    \"wineries\": [\"Winery Name\"],\n    \"name\": \"Wine Name\",\n    \"year\": \"2020\",\n    \"varietal\": \"Cabernet Sauvignon\", \n    \"region\": \"Napa Valley\"\n  }}\n]\n\nRules:\n- \"wineries\" is always an array (usually 1 item, sometimes multiple for collaborations)\n- \"name\" should be the specific wine name if visible\n- \"year\" can be null if not visible/identifiable\n- \"region\" can be null if not visible/identifiable  \n- \"varietal\" must be one of these exact options: {varietals_list}. If unsure, use Red Blend or White Blend.\n- Only include wines you can clearly identify\n- If you cannot identify any wines, return an empty array []\n- Return ONLY the JSON array, no other text",
+    "prompt_template": "Analyze this image and extract all wine information. Return a JSON object with a wines array containing wine objects with this exact structure:\n\n{{\n  \"wines\": [\n    {{\n      \"wineries\": [\"Winery Name\"],\n      \"name\": \"Wine Name\",\n      \"year\": \"2020\",\n      \"varietal\": \"Cabernet Sauvignon\", \n      \"region\": \"Napa Valley\"\n    }}\n  ]\n}}\n\nRules:\n- \"wineries\" is always an array (usually 1 item, sometimes multiple for collaborations)\n- \"name\" should be the specific wine name if visible\n- \"year\" can be null if not visible/identifiable\n- \"region\" can be null if not visible/identifiable  \n- \"varietal\" must be one of these exact options: {varietals_list}. If unsure, use Red Blend or White Blend.\n- Only include wines you can clearly identify\n- If you cannot identify any wines, return {{\"wines\": []}}\n- The response format will be enforced by the API",
     "model": "gpt-4o-mini",
     "max_tokens": 2000,
     "temperature": 0.1,
     "detail": "high"
+  },
+  
+  "sommelier": {
+    "prompt_template": "You are an expert sommelier providing personalized wine recommendations. Below are the detected wines from a wine menu or collection:\n\n{wine_list}\n\nYour sommelier profile: {sommelier_profile}\n\nFor each wine, provide detailed recommendations that match your taste profile. Return a JSON object with the wines array, maintaining the original wine information but adding a \"recommendation\" object to each wine with this exact structure:\n\n{{\n  \"wines\": [\n    {{\n      \"wineries\": [\"Winery Name\"],\n      \"name\": \"Wine Name\",\n      \"year\": \"2020\",\n      \"varietal\": \"Cabernet Sauvignon\",\n      \"region\": \"Napa Valley\",\n      \"recommendation\": {{\n        \"rating\": 85,\n        \"match_score\": 95,\n        \"tasting_notes\": \"Rich, full-bodied with notes of blackcurrant, cedar, and vanilla. Well-structured tannins.\",\n        \"food_pairing\": \"Perfect with grilled ribeye steak, aged cheeses, or braised short ribs.\",\n        \"why_recommended\": \"This Cabernet Sauvignon aligns perfectly with your preference for full-bodied reds and falls within your budget range.\",\n        \"price_estimate\": \"$45-55\"\n      }}\n    }}\n  ]\n}}\n\nRules:\n- \"rating\" should be 0-100 (wine quality score)\n- \"match_score\" should be 0-100 (how well it matches your profile)\n- \"tasting_notes\" should be descriptive and professional\n- \"food_pairing\" should suggest specific dishes that complement the wine\n- \"why_recommended\" should explain why this wine fits your profile\n- \"price_estimate\" can be null if unknown, otherwise provide a range\n- Be honest about wines that don't match your profile (lower match_score)\n- The response format will be enforced by the API",
+    "profile": "Prefers full-bodied reds, enjoys Cabernet Sauvignon and Malbec, budget around $30-60, dislikes overly sweet wines",
+    "model": "gpt-4o-mini",
+    "max_tokens": 3000,
+    "temperature": 0.3,
+    "detail": "low"
   }
 } 
