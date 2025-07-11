@@ -10,8 +10,19 @@ export default function RootLayout() {
         <Stack.Screen 
           name="photo-confirm" 
           options={{ 
-            title: 'Confirm Photo',
+            headerShown: false,
             animation: 'none' // Instant transition, no sliding
+          }} 
+        />
+        <Stack.Screen 
+          name="recommendations" 
+          options={{ 
+            title: 'Sommelier Recommendations',
+            headerStyle: {
+              backgroundColor: '#25292e',
+            },
+            headerShadowVisible: false,
+            headerTintColor: '#fff',
           }} 
         />
         <Stack.Screen name="wine-list" options={{ title: 'Wine Selection' }} />

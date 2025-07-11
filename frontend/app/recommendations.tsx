@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface WineRecommendation {
@@ -57,10 +57,7 @@ export default function RecommendationsScreen() {
     return '#f44336'; // Red
   };
 
-  const handleBack = () => {
-    // Go back to camera
-    router.push('/(tabs)/');
-  };
+
 
   const renderRecommendationItem = ({ item }: { item: WineRecommendation }) => (
     <View style={styles.wineCard}>
@@ -142,18 +139,21 @@ export default function RecommendationsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Modal-style header with back button */}
-      <View style={styles.modalHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.title}>Sommelier Recommendations</Text>
-          <Text style={styles.subtitle}>{recommendations.length} personalized suggestions</Text>
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
-      
+      <Stack.Screen
+        options={{
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => {
+                console.log('Exit button pressed');
+                router.dismissTo('/(tabs)/');
+              }}
+              style={styles.exitButton}
+            >
+              <Text style={styles.exitButtonText}>Exit</Text>
+            </TouchableOpacity>
+          ),
+        }}
+      />
       <FlatList
         data={recommendations}
         renderItem={renderRecommendationItem}
@@ -170,40 +170,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#25292e',
   },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 60, // Account for status bar
-    backgroundColor: '#25292e',
-    borderBottomWidth: 1,
-    borderBottomColor: '#444',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTextContainer: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  headerSpacer: {
-    width: 40, // Balance the back button
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#888',
-  },
+
   listContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -313,5 +280,14 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: '#888',
+  },
+  exitButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  exitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
 }); 
